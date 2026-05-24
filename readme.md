@@ -12,14 +12,23 @@ aplicado sobre as tabelas Grapes e Wines. O operador realiza:
 ## Estrutura do projeto
 
 ├── main.c      # Ponto de entrada
+
 ├── pagina.h    # Estruturas: Tupla, Pagina, Tabela, Esquema
+
 ├── pagina.c    # Leitura de CSV, criação e liberação de tabelas
+
 ├── sort.h      # Protótipos do sort externo
+
 ├── sort.c      # Geração de runs + merge de runs
+
 ├── join.h      # Protótipos do Sort-Merge Join
+
 ├── join.c      # Implementação do join
+
 ├── grapes.csv  # Tabela Grapes (38 tuplas)
+
 ├── wines.csv   # Tabela Wines (510 tuplas)
+
 └── Makefile
 
 ## Como compilar
