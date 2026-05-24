@@ -1,9 +1,9 @@
 #include "pagina.h"
 
-/* ─────────────────────────────────────────────
- * Retorna índice da coluna pelo nome.
- * Retorna -1 se não encontrar.
- * ───────────────────────────────────────────── */
+/*
+  Retorna índice da coluna pelo nome.
+  Retorna -1 se não encontrar.
+ */
 int esquema_indice(Esquema *esq, const char *nome_col) {
     for (int i = 0; i < esq->qtd_cols; i++) {
         if (strcmp(esq->nomes[i], nome_col) == 0)
@@ -11,19 +11,14 @@ int esquema_indice(Esquema *esq, const char *nome_col) {
     }
     return -1;
 }
-
-/* ─────────────────────────────────────────────
- * Cria uma página vazia
- * ───────────────────────────────────────────── */
+//Cria uma página vazia
 Pagina* criar_pagina() {
     Pagina *p = (Pagina*) malloc(sizeof(Pagina));
     p->qtd_tuplas_ocup = 0;
     return p;
 }
 
-/* ─────────────────────────────────────────────
- * Cria tabela vazia com esquema dado
- * ───────────────────────────────────────────── */
+ //Cria tabela vazia com esquema dado
 Tabela* criar_tabela(Esquema esq) {
     Tabela *t = (Tabela*) malloc(sizeof(Tabela));
     t->pags     = NULL;
@@ -31,10 +26,7 @@ Tabela* criar_tabela(Esquema esq) {
     t->esquema  = esq;
     return t;
 }
-
-/* ─────────────────────────────────────────────
- * Libera toda a memória de uma tabela
- * ───────────────────────────────────────────── */
+//Libera toda a memória de uma tabela
 void liberar_tabela(Tabela *t) {
     if (!t) return;
     for (int i = 0; i < t->qtd_pags; i++)
@@ -43,11 +35,11 @@ void liberar_tabela(Tabela *t) {
     free(t);
 }
 
-/* ─────────────────────────────────────────────
- * Parser de linha CSV respeitando aspas.
- * Preenche tupla com os campos encontrados.
- * Campos entre aspas podem conter vírgulas.
- * ───────────────────────────────────────────── */
+/*
+  Parser de linha CSV respeitando aspas.
+  Preenche tupla com os campos encontrados.
+  Campos entre aspas podem conter vírgulas.
+ */
 static void parsear_linha_csv(char *linha, Tupla *tupla, int qtd_cols) {
     tupla->qtd_cols = 0;
     int col = 0;
@@ -58,8 +50,8 @@ static void parsear_linha_csv(char *linha, Tupla *tupla, int qtd_cols) {
         int pos    = 0;
 
         if (*p == '"') {
-            /* campo entre aspas — pode ter vírgulas dentro */
-            p++; /* pula a aspas de abertura */
+            // campo entre aspas, pode ter vírgulas dentro
+            p++; // pula a aspas de abertura 
             while (*p) {
                 if (*p == '"' && *(p+1) == '"') {
                     /* aspas escapada ("") */
@@ -74,7 +66,7 @@ static void parsear_linha_csv(char *linha, Tupla *tupla, int qtd_cols) {
                 if (pos >= MAX_COL_TAM - 1) break;
             }
         } else {
-            /* campo simples sem aspas */
+            // campo simples sem aspas
             while (*p && *p != ',' && *p != '\n' && *p != '\r') {
                 dest[pos++] = *p++;
                 if (pos >= MAX_COL_TAM - 1) break;
@@ -85,16 +77,16 @@ static void parsear_linha_csv(char *linha, Tupla *tupla, int qtd_cols) {
         col++;
         tupla->qtd_cols++;
 
-        /* avança a vírgula separadora */
+        // avança a vírgula separadora
         if (*p == ',') p++;
     }
 }
 
-/* ─────────────────────────────────────────────
- * Lê CSV e monta a Tabela.
- * Primeira linha = cabeçalho (esquema).
- * Cada grupo de 12 tuplas = 1 página.
- * ───────────────────────────────────────────── */
+/*
+  Lê CSV e monta a Tabela.
+  Primeira linha = cabeçalho (esquema).
+  Cada grupo de 12 tuplas = 1 página.
+*/
 Tabela* ler_csv(const char *caminho) {
     FILE *f = fopen(caminho, "r");
     if (!f) {
@@ -104,7 +96,7 @@ Tabela* ler_csv(const char *caminho) {
 
     char linha[MAX_COLS * MAX_COL_TAM];
 
-    /* ── Lê cabeçalho → monta esquema ── */
+    // Lê cabeçalho. aí monta esquema
     if (!fgets(linha, sizeof(linha), f)) {
         fclose(f);
         return NULL;
@@ -113,7 +105,7 @@ Tabela* ler_csv(const char *caminho) {
 
     Esquema esq;
     esq.qtd_cols = 0;
-    /* reutiliza o parser mas para o esquema */
+    // reutiliza o parser mas para o esquema
     Tupla cab;
     parsear_linha_csv(linha, &cab, MAX_COLS);
     esq.qtd_cols = cab.qtd_cols;
@@ -122,7 +114,7 @@ Tabela* ler_csv(const char *caminho) {
 
     Tabela *t = criar_tabela(esq);
 
-    /* ── Lê tuplas linha a linha ── */
+    // Lê tuplas linha a linha
     Pagina *pag_atual = criar_pagina();
 
     while (fgets(linha, sizeof(linha), f)) {
@@ -133,10 +125,10 @@ Tabela* ler_csv(const char *caminho) {
         parsear_linha_csv(linha, &tupla, esq.qtd_cols);
         tupla.qtd_cols = esq.qtd_cols;
 
-        /* adiciona tupla na página atual */
+        // adiciona tupla na página atual
         pag_atual->tuplas[pag_atual->qtd_tuplas_ocup++] = tupla;
 
-        /* página cheia → adiciona à tabela e abre nova */
+        // página cheia, então adiciona à tabela e abre nova
         if (pag_atual->qtd_tuplas_ocup == MAX_TUPLAS_PAG) {
             t->pags = realloc(t->pags, (t->qtd_pags + 1) * sizeof(Pagina*));
             t->pags[t->qtd_pags++] = pag_atual;
@@ -144,7 +136,7 @@ Tabela* ler_csv(const char *caminho) {
         }
     }
 
-    /* última página (pode estar incompleta) */
+    // última página (pode estar incompleta)
     if (pag_atual->qtd_tuplas_ocup > 0) {
         t->pags = realloc(t->pags, (t->qtd_pags + 1) * sizeof(Pagina*));
         t->pags[t->qtd_pags++] = pag_atual;
@@ -155,12 +147,9 @@ Tabela* ler_csv(const char *caminho) {
     fclose(f);
     return t;
 }
-
-/* ─────────────────────────────────────────────
- * Imprime tabela no terminal (debug)
- * ───────────────────────────────────────────── */
+ // Imprime tabela no terminal (debug)
 void imprimir_tabela(Tabela *t) {
-    /* cabeçalho */
+    // cabeçalho 
     for (int c = 0; c < t->esquema.qtd_cols; c++) {
         printf("%s", t->esquema.nomes[c]);
         if (c < t->esquema.qtd_cols - 1) printf(" | ");
@@ -169,7 +158,7 @@ void imprimir_tabela(Tabela *t) {
     for (int c = 0; c < t->esquema.qtd_cols * 20; c++) printf("-");
     printf("\n");
 
-    /* tuplas */
+    // tuplas
     for (int i = 0; i < t->qtd_pags; i++) {
         Pagina *p = t->pags[i];
         for (int j = 0; j < p->qtd_tuplas_ocup; j++) {
