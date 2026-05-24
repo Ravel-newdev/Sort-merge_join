@@ -54,11 +54,11 @@ static void parsear_linha_csv(char *linha, Tupla *tupla, int qtd_cols) {
             p++; // pula a aspas de abertura 
             while (*p) {
                 if (*p == '"' && *(p+1) == '"') {
-                    /* aspas escapada ("") */
+                    // aspas escapada ("")
                     dest[pos++] = '"';
                     p += 2;
                 } else if (*p == '"') {
-                    p++; /* aspas de fechamento */
+                    p++; // aspas de fechamento
                     break;
                 } else {
                     dest[pos++] = *p++;
