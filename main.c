@@ -1,50 +1,44 @@
- #ifndef PAGINA_H
-#define PAGINA_H
-
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include "pagina.h"
+#include "sort.h"
+#include "join.h"
 
-// Constantes 
-#define MAX_TUPLAS_PAG  12    
-#define MAX_COLS        10    
-#define MAX_COL_TAM    512    
-#define MAX_NOME_COL    64    
+int main(void) {
 
-//  Tupla
-// Uma linha da tabela = vetor de strings
-typedef struct {
-    char cols[MAX_COLS][MAX_COL_TAM];
-    int  qtd_cols;
-} Tupla;
+    //Lê os CSVs do trabalho
+    Tabela *grapes = ler_csv("grapes.csv");
+    Tabela *wines  = ler_csv("wines.csv");
 
-// Página
-// Unidade de I/O — até 12 tuplas
-typedef struct {
-    Tupla tuplas[MAX_TUPLAS_PAG];
-    int   qtd_tuplas_ocup;
-} Pagina;
+    if (!grapes) { fprintf(stderr, "Erro ao ler grapes.csv\n"); return 1; }
+    if (!wines)  { fprintf(stderr, "Erro ao ler wines.csv\n");  return 1; }
 
-// Esquema
-// Aqui vou guardar os nomes das colunas e seus índices 
-typedef struct {
-    int  qtd_cols;
-    char nomes[MAX_COLS][MAX_NOME_COL];
-} Esquema;
+    printf("Grapes: %d páginas\n", grapes->qtd_pags);
+    printf("Wines:  %d páginas\n", wines->qtd_pags);
 
-// Tabela
-// Conjunto de páginas + esquema
-typedef struct {
-    Pagina  **pags;       
-    int       qtd_pags;   
-    Esquema   esquema;    
-} Tabela;
+    //Sort externo de cada tabela
+    Tabela *grapes_ord = sort_externo(grapes, "chave_primaria");
+    Tabela *wines_ord  = sort_externo(wines,  "chave_estrangeira");
 
-int esquema_indice(Esquema *esq, const char *nome_col);
-Pagina* criar_pagina();
-Tabela* criar_tabela(Esquema esq);
-void liberar_tabela(Tabela *t);
-Tabela* ler_csv(const char *caminho);
-void imprimir_tabela(Tabela *t);
+    printf("Grapes ordenado: %d páginas\n", grapes_ord->qtd_pags);
+    printf("Wines ordenado:  %d páginas\n", wines_ord->qtd_pags);
 
-#endif
+    // Sort-Merge Join
+    Tabela *resultado = sort_merge_join(grapes_ord, wines_ord,
+                                        "chave_primaria",
+                                        "chave_estrangeira");
+
+    printf("Resultado: %d páginas\n", resultado->qtd_pags);
+
+    //Imprime resultado
+    imprimir_tabela(resultado);
+
+    // Libera memória
+    liberar_tabela(grapes);
+    liberar_tabela(wines);
+    liberar_tabela(grapes_ord);
+    liberar_tabela(wines_ord);
+    liberar_tabela(resultado);
+
+    return 0;
+}
