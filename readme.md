@@ -10,7 +10,7 @@ aplicado sobre as tabelas Grapes e Wines. O operador realiza:
 3. **Merge Join** percorrendo sequencialmente as tabelas ordenadas
 
 ## Estrutura do projeto
-.
+
 ├── main.c      # Ponto de entrada
 ├── pagina.h    # Estruturas: Tupla, Pagina, Tabela, Esquema
 ├── pagina.c    # Leitura de CSV, criação e liberação de tabelas
