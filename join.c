@@ -1,6 +1,9 @@
 #include "join.h"
 #include <string.h>
 #include <stdlib.h>
+/* ideia geral: pega dois cursores em cada uma das tabelas e vai avançando, dependendo do menor valor,
+se os valores forem iguais, busca o inicio dos valores da tabela esquerda e faz a combinação de todos os elementos
+no final vc vai ter os dois cursores apontando para a proxima chave, repetindo o processo*/
 
 //junta as colunas das duas tabelas para criar o cabecalho (esquema) do resultado final
 Esquema montar_esquema_resultado(Esquema *esq, Esquema *dir) {
@@ -30,7 +33,8 @@ Tupla combinar_tuplas(Tupla *t_esq, Tupla *t_dir) {
     //continua copiando os valores da tupla da direita (dados das wines)
     for (int i = 0; i < t_dir->qtd_cols; i++)
         strncpy(res.cols[res.qtd_cols++], t_dir->cols[i], MAX_COL_TAM - 1);
-
+    
+    //O resultado é uma linha com 8 campos
     return res;
 }
 
@@ -38,7 +42,7 @@ Tupla combinar_tuplas(Tupla *t_esq, Tupla *t_dir) {
 void adicionar_tupla(Tabela *resultado, Tupla tupla) {
     Pagina *pag = NULL;
     
-    //se a tabela ja tem paginas, pega a ultima para tentar preencher
+    //se a tabela ja tem paginas, pega um ponteiro para a ultima pagina para tentar preencher
     if (resultado->qtd_pags > 0)
         pag = resultado->pags[resultado->qtd_pags - 1];
 
@@ -60,11 +64,11 @@ void adicionar_tupla(Tabela *resultado, Tupla tupla) {
 //recebe tabelas ordenadas, percorre sequencialmente e faz a juncao (funcao principal)
 Tabela* sort_merge_join(Tabela *esq, Tabela *dir, const char *col_esq, const char *col_dir) {
 
-    //cria a tabela final vazia usando a funcao auxiliar de esquema ali de cima
+    //cria a tabela final vazia usando a funcao auxiliar de esquema ali de cima (com 8 colunas)
     Esquema esq_res = montar_esquema_resultado(&esq->esquema, &dir->esquema);
     Tabela *resultado = criar_tabela(esq_res);
 
-    //descobre em qual numero de coluna estao as chaves (ex: coluna 0 = chave_primaria)
+    //descobre em qual posição numerica (indice) da coluna onde estao as chaves 
     int idx_esq = esquema_indice(&esq->esquema, col_esq); 
     int idx_dir = esquema_indice(&dir->esquema, col_dir); 
 
@@ -74,19 +78,21 @@ Tabela* sort_merge_join(Tabela *esq, Tabela *dir, const char *col_esq, const cha
     int pag_d = 0, tup_d = 0; 
 
     // MACROS: atalhos para o codigo nao ficar poluido
+    //TUP_ESQ significa tupla q o cursor esq ta apontando
+    //TUP_DIR significa tupla q o curso dir ta apontando
     // TUP_ESQ e TUP_DIR pegam exatamente o texto da linha onde o cursor ta apontando
     #define TUP_ESQ (esq->pags[pag_e]->tuplas[tup_e])
     #define TUP_DIR (dir->pags[pag_d]->tuplas[tup_d])
 
     //verifica se os cursores de pagina ja passaram do limite de paginas da tabela (Fim do arquivo)
     #define FIM_ESQ (pag_e >= esq->qtd_pags)
-    #define FIM_DIR (pag_d >= dir->qtd_pags)
+    #define FIM_DIR (pag_d >= dir->qtd_pags)0
 
     //AVANCAR_ESQ: Pula pra proxima linha. Se a linha passar de 12, zera a linha e pula pra proxima pagina
     #define AVANCAR_ESQ do { \
         tup_e++; \
         if (tup_e >= esq->pags[pag_e]->qtd_tuplas_ocup) { tup_e = 0; pag_e++; } \
-    } while(0)
+    } while(0) //padrao do c pra evitar bug com if/else
 
     //AVANCAR_DIR: Faz exatamente a mesma coisa, mas para os cursores do vinho
     #define AVANCAR_DIR do { \
@@ -94,14 +100,14 @@ Tabela* sort_merge_join(Tabela *esq, Tabela *dir, const char *col_esq, const cha
         if (tup_d >= dir->pags[pag_d]->qtd_tuplas_ocup) { tup_d = 0; pag_d++; } \
     } while(0)
 
-    //laco principal do Sort-Merge (Roda enquanto NENHUM dos arquivos tiver chegado no fim)
+    //laco principal do SM (Roda enquanto NENHUM dos arquivos tiver chegado no fim)
     while (!FIM_ESQ && !FIM_DIR) {
         
-        //pega as duas chaves que os cursores estao apontando agora
+        //pega os textos das duas chaves que os cursores estao apontando agora
         const char *chave_e = TUP_ESQ.cols[idx_esq];
         const char *chave_d = TUP_DIR.cols[idx_dir];
         
-        //strcmp compara alfabeticamente: < 0 (esq menor), > 0 (dir menor), == 0 (iguais)
+        //strcmp compara alfabeticamente: retorna  < 0 (chave esq menor), > 0 (chave dir menor), == 0 (iguais)
         int cmp = strcmp(chave_e, chave_d);
 
         if (cmp < 0) {
@@ -115,7 +121,7 @@ Tabela* sort_merge_join(Tabela *esq, Tabela *dir, const char *col_esq, const cha
         } else {
             //CMP == 0 significa chaves iguais, gera o produto cartesiano (relacao N:M)
 
-            //salva EXATAMENTE onde o grupo repetido da esquerda comecou (o "marcador")
+            //salva EXATAMENTE onde o grupo repetido da esquerda comecou (o "marcador"), o inicio
             int pag_e_ini = pag_e, tup_e_ini = tup_e;
 
             //cria cursores temporarios para passear pelo grupo repetido da direita
@@ -137,7 +143,7 @@ Tabela* sort_merge_join(Tabela *esq, Tabela *dir, const char *col_esq, const cha
                 while (!FIM_ESQ) {
                     const char *chave_e_cur = TUP_ESQ.cols[idx_esq];
                     
-                    //see a uva mudou de chave, esse grupinho acabou, quebra o laco
+                    //se a uva mudou de chave, esse grupinho acabou, quebra o laco
                     if (strcmp(chave_e_cur, chave_e) != 0) break; 
 
                     //junta a uva repetida atual com o vinho repetido atual

@@ -135,7 +135,7 @@ int main(void) {
     printf("A Tabela resultado possui: %d paginas\n", resultado->qtd_pags);
 
 
-    //libera toda a memória alocada para evitar memory leaks
+    //libera toda a memória alocada para evitar vazamento de memoria
     liberar_tabela(grapes_full);
     liberar_tabela(wines_full);
     liberar_tabela(grapes);

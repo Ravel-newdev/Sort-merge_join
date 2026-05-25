@@ -18,10 +18,11 @@ col_dir: nome da coluna de junção em dir ("chave_estrangeira")
 
 retorna a nova tabela com as tuplas resultantes
 as tabelas originais não são modificadas*/
-Tabela* sort_merge_join(Tabela *esq, Tabela *dir,
-                        const char *col_esq, const char *col_dir);
 
-//monta o esquema do resultado da junção
+Tabela* sort_merge_join(Tabela *esq, Tabela *dir, const char *col_esq, const char *col_dir);
+//Tabela*: ponteiro para a nova tabela de resultado
+
+//monta o esquema (cabeçalho)do resultado da junção
 //(todas as colunas da esquerda + todas as colunas da direita)
 Esquema montar_esquema_resultado(Esquema *esq, Esquema *dir);
 
